@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { UserPlus } from 'lucide-react'
+import { apiService } from '../services/api'
 
 export default function PatientRegistration() {
   const navigate = useNavigate()
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     fullName: '',
     dob: '',
@@ -33,10 +35,32 @@ export default function PatientRegistration() {
     return Object.keys(next).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validate()) return
-    navigate('/worklist')
+    
+    setLoading(true)
+    const result = await apiService.createPatient({
+      full_name: form.fullName,
+      date_of_birth: form.dob,
+      gender: form.gender || undefined,
+      phone: form.phone,
+      address: form.address || undefined,
+      city: form.city || undefined,
+      state: form.state || undefined,
+      zip_code: form.zip || undefined,
+      visit_type: form.visitType,
+      chief_complaint: form.chiefComplaint || undefined,
+      visit_date: form.visitDate || undefined,
+      status: 'Active',
+    })
+    setLoading(false)
+
+    if (result.error) {
+      setErrors({ submit: result.error })
+    } else {
+      navigate('/worklist')
+    }
   }
 
   return (
@@ -52,6 +76,12 @@ export default function PatientRegistration() {
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-card shadow-card p-6 max-w-2xl space-y-6">
+        {errors.submit && (
+          <div className="p-4 bg-danger-50 border border-danger-200 rounded-lg text-danger-700 text-sm">
+            {errors.submit}
+          </div>
+        )}
+
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Demographics</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -188,9 +218,10 @@ export default function PatientRegistration() {
         <div className="flex gap-3 pt-4">
           <button
             type="submit"
-            className="px-5 py-2.5 bg-primary-500 text-white font-medium rounded-button shadow-sm hover:bg-primary-600 transition"
+            disabled={loading}
+            className="px-5 py-2.5 bg-primary-500 text-white font-medium rounded-button shadow-sm hover:bg-primary-600 transition disabled:opacity-50"
           >
-            Create patient record
+            {loading ? 'Creating...' : 'Create patient record'}
           </button>
           <button
             type="button"

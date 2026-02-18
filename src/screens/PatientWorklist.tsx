@@ -1,15 +1,34 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, Users } from 'lucide-react'
-import { getAllPatients } from '../data/mockPatients'
+import { apiService, type Patient } from '../services/api'
 
 export default function PatientWorklist() {
+  const [patients, setPatients] = useState<Patient[]>([])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
-  const filtered = getAllPatients().filter((p) => {
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchPatients = async () => {
+      const result = await apiService.getPatients()
+      if (result.error) {
+        setError(result.error)
+      } else if (result.data) {
+        // Ensure data is always an array
+        const patientsData = Array.isArray(result.data) ? result.data : []
+        setPatients(patientsData)
+      }
+      setLoading(false)
+    }
+    fetchPatients()
+  }, [])
+
+  const filtered = (Array.isArray(patients) ? patients : []).filter((p) => {
     const matchSearch =
       !search.trim() ||
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.full_name.toLowerCase().includes(search.toLowerCase()) ||
       p.mrn.toLowerCase().includes(search.toLowerCase()) ||
       p.id.toLowerCase().includes(search.toLowerCase())
     const matchStatus = !statusFilter || p.status === statusFilter
@@ -27,6 +46,12 @@ export default function PatientWorklist() {
           <p className="text-gray-500 text-sm">Search and open patient records</p>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-4 p-4 bg-danger-50 border border-danger-200 rounded-lg text-danger-700">
+          {error}
+        </div>
+      )}
 
       <div className="bg-white rounded-card shadow-card overflow-hidden">
         <div className="p-4 border-b border-gray-200 flex flex-wrap items-center gap-3">
@@ -52,76 +77,74 @@ export default function PatientWorklist() {
           </select>
         </div>
 
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Patient ID
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Name
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                MRN
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                DOB
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Last activity
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
+        {loading ? (
+          <div className="p-8 text-center text-gray-500">Loading patients...</div>
+        ) : (
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
-                  No patients match your search. Try different filters.
-                </td>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Patient ID
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Name
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  MRN
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  DOB
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Last activity
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
-            ) : (
-              filtered.map((p) => (
-                <tr
-                  key={p.id}
-                  className="border-b border-gray-100 hover:bg-gray-50 transition"
-                >
-                  <td className="px-4 py-3 text-sm font-mono text-gray-700">{p.id}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{p.name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{p.mrn}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{p.dob}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        p.status === 'Active'
-                          ? 'bg-success-100 text-success-700'
-                          : p.status === 'Pending'
-                            ? 'bg-warning-100 text-warning-700'
-                            : 'bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      {p.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{p.lastActivity}</td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      to={`/patient/${p.id}`}
-                      className="text-primary-600 hover:text-primary-700 font-medium text-sm"
-                    >
-                      View
-                    </Link>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                    {error ? 'Error loading patients' : 'No patients match your search.'}
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                filtered.map((p) => (
+                  <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50 transition">
+                    <td className="px-4 py-3 text-sm font-mono text-gray-700">{p.id}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{p.full_name}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{p.mrn}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{p.date_of_birth}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          p.status === 'Active'
+                            ? 'bg-success-100 text-success-700'
+                            : p.status === 'Pending'
+                              ? 'bg-warning-100 text-warning-700'
+                              : 'bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        {p.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{p.last_activity}</td>
+                    <td className="px-4 py-3 text-right">
+                      <Link to={`/patient/${p.id}`} className="text-primary-600 hover:text-primary-700 font-medium text-sm">
+                        View
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   )

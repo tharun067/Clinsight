@@ -11,12 +11,15 @@ import {
   ArrowLeft,
   ClipboardList,
   BrainCircuit,
+  Heart,
 } from 'lucide-react'
 import type { Role } from '../context/AuthContext'
 
 const SIDEBAR_ITEMS: { path: string; label: string; icon: React.ElementType; roles: Role[] }[] = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['intake', 'nurse', 'radiologist', 'physician', 'admin', 'compliance', 'patient'] },
+  { path: '/portal', label: 'Patient Portal', icon: Heart, roles: ['patient'] },
   { path: '/register', label: 'Patient Registration', icon: UserPlus, roles: ['intake'] },
+  { path: '/staff-register', label: 'Staff Registration', icon: UserPlus, roles: ['admin'] },
   { path: '/upload', label: 'Bulk Upload', icon: Upload, roles: ['intake'] },
   { path: '/worklist', label: 'Patient Worklist', icon: Users, roles: ['intake', 'nurse', 'radiologist', 'physician'] },
   { path: '/diagnostic-lookup', label: 'Diagnostic Support', icon: BrainCircuit, roles: ['physician'] },

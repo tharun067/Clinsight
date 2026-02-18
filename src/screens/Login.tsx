@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Stethoscope } from 'lucide-react'
 
@@ -9,18 +9,31 @@ export default function Login() {
   const [mfaCode, setMfaCode] = useState('')
   const [showMfa, setShowMfa] = useState(false)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const { login } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
+  useEffect(() => {
+    if (searchParams.get('admin_created') === 'true') {
+      setSuccessMessage('Admin account created successfully! Please sign in.')
+    }
+  }, [searchParams])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    const ok = login(username, password)
-    if (!ok) {
-      setError('Invalid username or password. Try again.')
-      return
-    }
-    navigate('/') // Demo: skip MFA; MFA step still available below if needed
+    login(username, password)
+      .then((result) => {
+        if (result.success) {
+          navigate('/')
+        } else {
+          setError(result.error || 'Invalid username or password. Try again.')
+        }
+      })
+      .catch(() => {
+        setError('An error occurred. Please try again.')
+      })
   }
 
   const handleMfaSubmit = (e: React.FormEvent) => {
@@ -81,6 +94,11 @@ export default function Login() {
                   required
                 />
               </div>
+              {successMessage && (
+                <div className="p-3 rounded-lg bg-success-50 border border-success-200 text-success-700 text-sm">
+                  {successMessage}
+                </div>
+              )}
               {error && (
                 <div className="p-3 rounded-lg bg-danger-50 border border-danger-200 text-danger-700 text-sm">
                   {error}
@@ -96,6 +114,12 @@ export default function Login() {
                 Don&apos;t have an account?{' '}
                 <Link to="/signup" className="font-medium text-primary-600 hover:text-primary-700">
                   Register as a patient
+                </Link>
+              </p>
+              <p className="mt-2 text-center text-sm text-gray-500">
+                First time setup?{' '}
+                <Link to="/bootstrap-admin" className="font-medium text-red-600 hover:text-red-700">
+                  Create admin account
                 </Link>
               </p>
             </form>

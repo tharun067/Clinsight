@@ -1,25 +1,57 @@
 import { useParams } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Image, Save } from 'lucide-react'
-import { getPatientById } from '../data/mockPatients'
+import { apiService, type Patient } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import AccessDenied from './AccessDenied'
-
-const MOCK_STUDIES = [
-  { id: '1', date: '02/05/2025', modality: 'X-ray', bodyPart: 'Chest', status: 'Final' },
-  { id: '2', date: '02/01/2025', modality: 'CT', bodyPart: 'Abdomen', status: 'Preliminary' },
-]
 
 export default function ImagingReview() {
   const { id } = useParams()
   const { user } = useAuth()
-  const patient = id ? getPatientById(id) : undefined
-  const [selectedStudy, setSelectedStudy] = useState(MOCK_STUDIES[0])
-  const [notes, setNotes] = useState('No acute cardiopulmonary process. Heart size normal. Lungs clear.')
+  const [patient, setPatient] = useState<Patient | null>(null)
+  const [studies, setStudies] = useState<any[]>([])
+  const [selectedStudy, setSelectedStudy] = useState<any>(null)
+  const [notes, setNotes] = useState('')
   const [saved, setSaved] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const canEdit = user!.role === 'radiologist'
 
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!id) {
+        setLoading(false)
+        return
+      }
+
+      const patientResult = await apiService.getPatient(id)
+      if (patientResult.data) {
+        setPatient(patientResult.data)
+      }
+
+      const studiesResult = await apiService.getImagingStudies(id)
+      if (studiesResult.data) {
+        // Ensure data is always an array
+        const studiesData = Array.isArray(studiesResult.data) ? studiesResult.data : []
+        setStudies(studiesData)
+        if (studiesData.length > 0) {
+          setSelectedStudy(studiesData[0])
+          setNotes(studiesData[0].notes || '')
+        }
+      } else if (studiesResult.error) {
+        setError(studiesResult.error)
+      }
+
+      setLoading(false)
+    }
+
+    fetchData()
+  }, [id])
+
   if (user!.role === 'patient' && id !== user!.id) return <AccessDenied />
+  if (loading) {
+    return <div className="text-center py-12 text-gray-500">Loading imaging studies...</div>
+  }
   if (!patient) {
     return (
       <div className="text-center py-12 text-gray-500">Patient not found.</div>
@@ -39,30 +71,43 @@ export default function ImagingReview() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Imaging Review</h1>
-          <p className="text-gray-500 text-sm">Patient ID: {patient.id} · {patient.name} · MRN: {patient.mrn}</p>
+          <p className="text-gray-500 text-sm">Patient ID: {patient.id} · {patient.full_name} · MRN: {patient.mrn}</p>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-4 p-4 bg-danger-50 border border-danger-200 rounded-lg text-danger-700">
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="space-y-4">
           <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Studies</h2>
           <ul className="space-y-2">
-            {MOCK_STUDIES.map((s) => (
-              <li key={s.id}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedStudy(s)}
-                  className={`w-full text-left p-3 rounded-lg border transition ${
-                    selectedStudy.id === s.id
-                      ? 'border-primary-500 bg-primary-50 text-primary-900'
-                      : 'border-gray-200 hover:bg-gray-50 text-gray-900'
-                  }`}
-                >
-                  <p className="text-sm font-medium">{s.modality} — {s.bodyPart}</p>
-                  <p className="text-xs text-gray-500">{s.date} · {s.status}</p>
-                </button>
-              </li>
-            ))}
+            {studies.length === 0 ? (
+              <li className="text-sm text-gray-500">No imaging studies available.</li>
+            ) : (
+              studies.map((s) => (
+                <li key={s.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedStudy(s)
+                      setNotes(s.notes || '')
+                    }}
+                    className={`w-full text-left p-3 rounded-lg border transition ${
+                      selectedStudy?.id === s.id
+                        ? 'border-primary-500 bg-primary-50 text-primary-900'
+                        : 'border-gray-200 hover:bg-gray-50 text-gray-900'
+                    }`}
+                  >
+                    <p className="text-sm font-medium">{s.modality} — {s.bodyPart}</p>
+                    <p className="text-xs text-gray-500">{s.date} · {s.status}</p>
+                  </button>
+                </li>
+              ))
+            )}
           </ul>
         </div>
 
@@ -72,26 +117,28 @@ export default function ImagingReview() {
               <div className="text-center">
                 <Image className="w-16 h-16 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">Image viewer placeholder</p>
-                <p className="text-xs mt-1">{selectedStudy.modality} — {selectedStudy.bodyPart}</p>
+                {selectedStudy && <p className="text-xs mt-1">{selectedStudy.modality} — {selectedStudy.bodyPart}</p>}
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-card shadow-card p-6">
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Study metadata</h2>
-            <dl className="grid grid-cols-2 gap-2 text-sm text-gray-600">
-              <dt>Patient</dt>
-              <dd>{patient.name}</dd>
-              <dt>Date</dt>
-              <dd>{selectedStudy.date}</dd>
-              <dt>Modality</dt>
-              <dd>{selectedStudy.modality}</dd>
-              <dt>Body part</dt>
-              <dd>{selectedStudy.bodyPart}</dd>
-              <dt>Status</dt>
-              <dd>{selectedStudy.status}</dd>
-            </dl>
-          </div>
+          {selectedStudy && (
+            <div className="bg-white rounded-card shadow-card p-6">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Study metadata</h2>
+              <dl className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                <dt>Patient</dt>
+                <dd>{patient.full_name}</dd>
+                <dt>Date</dt>
+                <dd>{selectedStudy.date}</dd>
+                <dt>Modality</dt>
+                <dd>{selectedStudy.modality}</dd>
+                <dt>Body part</dt>
+                <dd>{selectedStudy.bodyPart}</dd>
+                <dt>Status</dt>
+                <dd>{selectedStudy.status}</dd>
+              </dl>
+            </div>
+          )}
 
           <div className="bg-white rounded-card shadow-card p-6">
             <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Radiologist notes</h2>

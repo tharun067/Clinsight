@@ -1,31 +1,55 @@
 import { useParams } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FlaskConical } from 'lucide-react'
-import { getPatientById } from '../data/mockPatients'
+import { apiService, type Patient } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import AccessDenied from './AccessDenied'
-
-const MOCK_VITALS = [
-  { date: '02/07/2025 10:00', bp: '120/80', hr: 72, temp: 98.6, spo2: 98 },
-  { date: '02/06/2025 14:00', bp: '118/78', hr: 70, temp: 98.4, spo2: 99 },
-]
-
-const MOCK_LABS = [
-  { test: 'WBC', value: 12.3, unit: 'K/uL', ref: '4.0–11.0', flag: 'High' },
-  { test: 'RBC', value: 4.8, unit: 'M/uL', ref: '4.5–5.5', flag: null },
-  { test: 'Hemoglobin', value: 14.2, unit: 'g/dL', ref: '13.5–17.5', flag: null },
-  { test: 'Platelets', value: 245, unit: 'K/uL', ref: '150–400', flag: null },
-  { test: 'CRP', value: 8.5, unit: 'mg/L', ref: '0–5', flag: 'High' },
-]
 
 export default function LabsAndVitals() {
   const { id } = useParams()
   const { user } = useAuth()
-  const patient = id ? getPatientById(id) : undefined
+  const [patient, setPatient] = useState<Patient | null>(null)
+  const [vitals, setVitals] = useState<any[]>([])
+  const [labs, setLabs] = useState<any[]>([])
   const [newObs, setNewObs] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const canEdit = user!.role === 'nurse'
 
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!id) {
+        setLoading(false)
+        return
+      }
+
+      const patientResult = await apiService.getPatient(id)
+      if (patientResult.data) {
+        setPatient(patientResult.data)
+      }
+
+      const labsResult = await apiService.getLabsAndVitals(id)
+      if (labsResult.data) {
+        // Ensure data is always an array
+        const allResults = Array.isArray(labsResult.data) ? labsResult.data : []
+        const vitalsData = allResults.filter((r: any) => r.type === 'vitals')
+        const labsData = allResults.filter((r: any) => r.type === 'lab')
+        setVitals(vitalsData.length > 0 ? vitalsData : [])
+        setLabs(labsData.length > 0 ? labsData : [])
+      } else if (labsResult.error) {
+        setError(labsResult.error)
+      }
+
+      setLoading(false)
+    }
+
+    fetchData()
+  }, [id])
+
   if (user!.role === 'patient' && id !== user!.id) return <AccessDenied />
+  if (loading) {
+    return <div className="text-center py-12 text-gray-500">Loading labs and vitals...</div>
+  }
   if (!patient) {
     return <div className="text-center py-12 text-gray-500">Patient not found.</div>
   }
@@ -38,9 +62,15 @@ export default function LabsAndVitals() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Labs & Vitals</h1>
-          <p className="text-gray-500 text-sm">Patient ID: {patient.id} · {patient.name} · MRN: {patient.mrn}</p>
+          <p className="text-gray-500 text-sm">Patient ID: {patient.id} · {patient.full_name} · MRN: {patient.mrn}</p>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-4 p-4 bg-danger-50 border border-danger-200 rounded-lg text-danger-700">
+          {error}
+        </div>
+      )}
 
       <div className="space-y-8">
         <div className="bg-white rounded-card shadow-card overflow-hidden">
@@ -56,15 +86,23 @@ export default function LabsAndVitals() {
               </tr>
             </thead>
             <tbody>
-              {MOCK_VITALS.map((v, i) => (
-                <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm text-gray-600">{v.date}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{v.bp}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{v.hr}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{v.temp}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{v.spo2}</td>
+              {vitals.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                    No vitals available.
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                vitals.map((v, i) => (
+                  <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm text-gray-600">{v.date}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{v.bp}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{v.hr}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{v.temp}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{v.spo2}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
           {canEdit && (
@@ -100,28 +138,36 @@ export default function LabsAndVitals() {
               </tr>
             </thead>
             <tbody>
-              {MOCK_LABS.map((row, i) => (
-                <tr
-                  key={i}
-                  className={`border-b border-gray-100 hover:bg-gray-50 ${
-                    row.flag ? 'bg-danger-50/50' : ''
-                  }`}
-                >
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{row.test}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{row.value}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{row.unit}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{row.ref}</td>
-                  <td className="px-4 py-3">
-                    {row.flag ? (
-                      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-danger-100 text-danger-700">
-                        {row.flag}
-                      </span>
-                    ) : (
-                      <span className="text-sm text-gray-400">—</span>
-                    )}
+              {labs.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                    No labs available.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                labs.map((row, i) => (
+                  <tr
+                    key={i}
+                    className={`border-b border-gray-100 hover:bg-gray-50 ${
+                      row.flag ? 'bg-danger-50/50' : ''
+                    }`}
+                  >
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{row.test}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{row.value}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{row.unit}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{row.ref}</td>
+                    <td className="px-4 py-3">
+                      {row.flag ? (
+                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-danger-100 text-danger-700">
+                          {row.flag}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-gray-400">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

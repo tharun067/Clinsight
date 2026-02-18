@@ -1,47 +1,60 @@
 import { useParams } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FileText } from 'lucide-react'
-import { getPatientById } from '../data/mockPatients'
+import { apiService, type Patient } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import AccessDenied from './AccessDenied'
-
-const MOCK_NOTES = [
-  {
-    id: '1',
-    date: '02/06/2025 14:30',
-    author: 'Dr. Sarah Williams',
-    version: 'v2',
-    subjective: 'Patient reports improved energy and no chest pain.',
-    objective: 'Vitals stable. Lungs clear to auscultation.',
-    assessment: 'Stable. Continue current plan.',
-    plan: 'Follow-up in 2 weeks. Continue medications.',
-  },
-  {
-    id: '2',
-    date: '02/01/2025 10:00',
-    author: 'Dr. Sarah Williams',
-    version: 'v1',
-    subjective: '68-year-old male, fever, productive cough, shortness of breath x 3 days.',
-    objective: 'T 38.2, HR 92, BP 138/88. Crackles at right base.',
-    assessment: 'Community-acquired pneumonia, right lower lobe.',
-    plan: 'Chest X-ray, CBC, CRP. Start empiric antibiotics. Admit for observation.',
-  },
-]
 
 export default function ClinicalNotes() {
   const { id } = useParams()
   const { user } = useAuth()
-  const patient = id ? getPatientById(id) : undefined
-  const [selectedId, setSelectedId] = useState(MOCK_NOTES[0].id)
+  const [patient, setPatient] = useState<Patient | null>(null)
+  const [notes, setNotes] = useState<any[]>([])
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const canEdit = user!.role === 'physician' || user!.role === 'nurse'
 
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!id) {
+        setLoading(false)
+        return
+      }
+
+      const patientResult = await apiService.getPatient(id)
+      if (patientResult.data) {
+        setPatient(patientResult.data)
+      }
+
+      const notesResult = await apiService.getClinicalNotes(id)
+      if (notesResult.data) {
+        // Ensure data is always an array
+        const notesData = Array.isArray(notesResult.data) ? notesResult.data : []
+        setNotes(notesData)
+        if (notesData.length > 0) {
+          setSelectedId(notesData[0].id)
+        }
+      } else if (notesResult.error) {
+        setError(notesResult.error)
+      }
+
+      setLoading(false)
+    }
+
+    fetchData()
+  }, [id])
+
   if (user!.role === 'patient' && id !== user!.id) return <AccessDenied />
+  if (loading) {
+    return <div className="text-center py-12 text-gray-500">Loading clinical notes...</div>
+  }
   if (!patient) {
     return <div className="text-center py-12 text-gray-500">Patient not found.</div>
   }
 
-  const selected = MOCK_NOTES.find((n) => n.id === selectedId) ?? MOCK_NOTES[0]
+  const selected = notes.find((n) => n.id === selectedId) ?? notes[0]
 
   return (
     <div>
@@ -51,9 +64,15 @@ export default function ClinicalNotes() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Clinical Notes</h1>
-          <p className="text-gray-500 text-sm">Patient ID: {patient.id} · {patient.name} · MRN: {patient.mrn}</p>
+          <p className="text-gray-500 text-sm">Patient ID: {patient.id} · {patient.full_name} · MRN: {patient.mrn}</p>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-4 p-4 bg-danger-50 border border-danger-200 rounded-lg text-danger-700">
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="space-y-2">
@@ -70,50 +89,60 @@ export default function ClinicalNotes() {
             )}
           </div>
           <ul className="space-y-2">
-            {MOCK_NOTES.map((n) => (
-              <li key={n.id}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedId(n.id)}
-                  className={`w-full text-left p-3 rounded-lg border transition ${
-                    selectedId === n.id
-                      ? 'border-primary-500 bg-primary-50 text-primary-900'
-                      : 'border-gray-200 hover:bg-gray-50 text-gray-900'
-                  }`}
-                >
-                  <p className="text-sm font-medium">{n.date}</p>
-                  <p className="text-xs text-gray-500">{n.author} · {n.version}</p>
-                </button>
-              </li>
-            ))}
+            {notes.length === 0 ? (
+              <li className="text-sm text-gray-500">No notes available.</li>
+            ) : (
+              notes.map((n) => (
+                <li key={n.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(n.id)}
+                    className={`w-full text-left p-3 rounded-lg border transition ${
+                      selectedId === n.id
+                        ? 'border-primary-500 bg-primary-50 text-primary-900'
+                        : 'border-gray-200 hover:bg-gray-50 text-gray-900'
+                    }`}
+                  >
+                    <p className="text-sm font-medium">{n.date}</p>
+                    <p className="text-xs text-gray-500">{n.author} · {n.version}</p>
+                  </button>
+                </li>
+              ))
+            )}
           </ul>
         </div>
 
         <div className="lg:col-span-2 bg-white rounded-card shadow-card p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <p className="text-sm text-gray-500">{selected.date} · {selected.version}</p>
-              <p className="text-sm font-medium text-gray-900">{selected.author}</p>
-            </div>
-          </div>
-          <dl className="space-y-4">
-            <div>
-              <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Subjective</dt>
-              <dd className="text-sm text-gray-900">{selected.subjective}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Objective</dt>
-              <dd className="text-sm text-gray-900">{selected.objective}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Assessment</dt>
-              <dd className="text-sm text-gray-900">{selected.assessment}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Plan</dt>
-              <dd className="text-sm text-gray-900">{selected.plan}</dd>
-            </div>
-          </dl>
+          {selected ? (
+            <>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <p className="text-sm text-gray-500">{selected.date} · {selected.version}</p>
+                  <p className="text-sm font-medium text-gray-900">{selected.author}</p>
+                </div>
+              </div>
+              <dl className="space-y-4">
+                <div>
+                  <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Subjective</dt>
+                  <dd className="text-sm text-gray-900">{selected.subjective}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Objective</dt>
+                  <dd className="text-sm text-gray-900">{selected.objective}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Assessment</dt>
+                  <dd className="text-sm text-gray-900">{selected.assessment}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Plan</dt>
+                  <dd className="text-sm text-gray-900">{selected.plan}</dd>
+                </div>
+              </dl>
+            </>
+          ) : (
+            <p className="text-gray-500">Select a note to view details.</p>
+          )}
         </div>
       </div>
 

@@ -1,16 +1,41 @@
 import { useParams, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { User, AlertTriangle, Image, FlaskConical, FileText, Stethoscope } from 'lucide-react'
-import { getPatientById } from '../data/mockPatients'
+import { apiService, type Patient } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import AccessDenied from './AccessDenied'
 
 export default function PatientOverview() {
   const { id } = useParams()
   const { user } = useAuth()
-  const patient = id ? getPatientById(id) : undefined
+  const [patient, setPatient] = useState<Patient | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchPatient = async () => {
+      if (!id) {
+        setLoading(false)
+        return
+      }
+      const result = await apiService.getPatient(id)
+      if (result.error) {
+        // Handle error silently or show in UI
+      } else if (result.data) {
+        setPatient(result.data)
+      }
+      setLoading(false)
+    }
+    fetchPatient()
+  }, [id])
 
   if (user!.role === 'patient' && id !== user!.id) {
     return <AccessDenied />
+  }
+
+  if (loading) {
+    return (
+      <div className="text-center py-12 text-gray-500">Loading patient information...</div>
+    )
   }
 
   if (!patient) {
@@ -40,8 +65,8 @@ export default function PatientOverview() {
           <User className="w-5 h-5" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{patient.name}</h1>
-          <p className="text-gray-500 text-sm">Patient ID: {patient.id} · MRN: {patient.mrn} · DOB: {patient.dob}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{patient.full_name}</h1>
+          <p className="text-gray-500 text-sm">Patient ID: {patient.id} · MRN: {patient.mrn} · DOB: {patient.date_of_birth}</p>
         </div>
       </div>
 
@@ -53,11 +78,15 @@ export default function PatientOverview() {
               <dt className="text-gray-500">Patient ID</dt>
               <dd className="text-gray-900 font-mono">{patient.id}</dd>
               <dt className="text-gray-500">Name</dt>
-              <dd className="text-gray-900 font-medium">{patient.name}</dd>
+              <dd className="text-gray-900 font-medium">{patient.full_name}</dd>
               <dt className="text-gray-500">MRN</dt>
               <dd className="text-gray-900 font-mono">{patient.mrn}</dd>
               <dt className="text-gray-500">DOB</dt>
-              <dd className="text-gray-900">{patient.dob}</dd>
+              <dd className="text-gray-900">{patient.date_of_birth}</dd>
+              <dt className="text-gray-500">Gender</dt>
+              <dd className="text-gray-900">{patient.gender || '—'}</dd>
+              <dt className="text-gray-500">Phone</dt>
+              <dd className="text-gray-900">{patient.phone || '—'}</dd>
               <dt className="text-gray-500">Status</dt>
               <dd>
                 <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-700">
@@ -82,24 +111,17 @@ export default function PatientOverview() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Timeline</h2>
             <ul className="space-y-4">
               <li className="flex gap-4">
-                <span className="text-sm text-gray-500 w-20 shrink-0">02/07/2025</span>
+                <span className="text-sm text-gray-500 w-20 shrink-0">{patient.visit_date || '—'}</span>
                 <div className="border-l-4 border-primary-500 pl-4 py-1">
-                  <p className="text-sm font-medium text-gray-900">Lab result</p>
-                  <p className="text-xs text-gray-500">CBC completed</p>
+                  <p className="text-sm font-medium text-gray-900">Last visit</p>
+                  <p className="text-xs text-gray-500">{patient.chief_complaint || 'No chief complaint'}</p>
                 </div>
               </li>
               <li className="flex gap-4">
-                <span className="text-sm text-gray-500 w-20 shrink-0">02/06/2025</span>
+                <span className="text-sm text-gray-500 w-20 shrink-0">{patient.last_activity}</span>
                 <div className="border-l-4 border-gray-200 pl-4 py-1">
-                  <p className="text-sm font-medium text-gray-900">Clinical note</p>
-                  <p className="text-xs text-gray-500">Dr. Williams — progress note</p>
-                </div>
-              </li>
-              <li className="flex gap-4">
-                <span className="text-sm text-gray-500 w-20 shrink-0">02/05/2025</span>
-                <div className="border-l-4 border-gray-200 pl-4 py-1">
-                  <p className="text-sm font-medium text-gray-900">Imaging</p>
-                  <p className="text-xs text-gray-500">Chest X-ray ordered</p>
+                  <p className="text-sm font-medium text-gray-900">Last activity</p>
+                  <p className="text-xs text-gray-500">—</p>
                 </div>
               </li>
             </ul>

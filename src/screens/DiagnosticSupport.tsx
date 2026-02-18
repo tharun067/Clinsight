@@ -1,20 +1,45 @@
 import { useParams } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { Stethoscope, AlertTriangle, FileText } from 'lucide-react'
-import { getPatientById } from '../data/mockPatients'
-
-const MOCK_SUGGESTIONS = [
-  { condition: 'Community-acquired pneumonia', confidence: 78, evidence: 'Chest X-ray opacity RLL; elevated WBC and CRP; clinical presentation.' },
-  { condition: 'Acute bronchitis', confidence: 45, evidence: 'Cough and fever; no focal consolidation on imaging.' },
-]
-
-const MOCK_CITATIONS = [
-  { id: 'PMID-12345', source: 'PubMed', title: 'CAP guidelines 2024' },
-  { id: 'SNOMED-233604007', source: 'SNOMED CT', title: 'Pneumonia (disorder)' },
-]
+import { apiService, type Patient } from '../services/api'
 
 export default function DiagnosticSupport() {
   const { id } = useParams()
-  const patient = id ? getPatientById(id) : undefined
+  const [patient, setPatient] = useState<Patient | null>(null)
+  const [suggestions, setSuggestions] = useState<any[]>([])
+  const [citations, setCitations] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!id) {
+        setLoading(false)
+        return
+      }
+
+      const patientResult = await apiService.getPatient(id)
+      if (patientResult.data) {
+        setPatient(patientResult.data)
+      }
+
+      const suggestionsResult = await apiService.getDiagnosticSupport(id)
+      if (suggestionsResult.data) {
+        setSuggestions(suggestionsResult.data.suggestions || [])
+        setCitations(suggestionsResult.data.citations || [])
+      } else if (suggestionsResult.error) {
+        setError(suggestionsResult.error)
+      }
+
+      setLoading(false)
+    }
+
+    fetchData()
+  }, [id])
+
+  if (loading) {
+    return <div className="text-center py-12 text-gray-500">Loading diagnostic support...</div>
+  }
 
   if (!patient) {
     return <div className="text-center py-12 text-gray-500">Patient not found.</div>
@@ -28,9 +53,15 @@ export default function DiagnosticSupport() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Diagnostic Support</h1>
-          <p className="text-gray-500 text-sm">{patient.name} · Physician only</p>
+          <p className="text-gray-500 text-sm">{patient.full_name} · Physician only</p>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-4 p-4 bg-danger-50 border border-danger-200 rounded-lg text-danger-700">
+          {error}
+        </div>
+      )}
 
       <div className="mb-6 p-4 bg-warning-50 border-l-4 border-warning-500 rounded-r-lg flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 text-warning-600 shrink-0 mt-0.5" />
@@ -46,22 +77,26 @@ export default function DiagnosticSupport() {
         <div className="bg-white rounded-card shadow-card p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Suggested conditions (support only)</h2>
           <ul className="space-y-4">
-            {MOCK_SUGGESTIONS.map((s, i) => (
-              <li key={i} className="border border-gray-200 rounded-lg p-4">
-                <p className="text-sm font-medium text-gray-900">{s.condition}</p>
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-xs font-medium text-gray-500">Confidence</span>
-                  <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary-500 rounded-full"
-                      style={{ width: `${s.confidence}%` }}
-                    />
+            {suggestions.length === 0 ? (
+              <li className="text-gray-500">No diagnostic suggestions available.</li>
+            ) : (
+              suggestions.map((s, i) => (
+                <li key={i} className="border border-gray-200 rounded-lg p-4">
+                  <p className="text-sm font-medium text-gray-900">{s.condition}</p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-500">Confidence</span>
+                    <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary-500 rounded-full"
+                        style={{ width: `${s.confidence}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-medium text-gray-600">{s.confidence}%</span>
                   </div>
-                  <span className="text-xs font-medium text-gray-600">{s.confidence}%</span>
-                </div>
-                <p className="mt-2 text-sm text-gray-600">{s.evidence}</p>
-              </li>
-            ))}
+                  <p className="mt-2 text-sm text-gray-600">{s.evidence}</p>
+                </li>
+              ))
+            )}
           </ul>
         </div>
 
@@ -69,7 +104,7 @@ export default function DiagnosticSupport() {
           <div className="bg-white rounded-card shadow-card p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Evidence summary</h2>
             <p className="text-sm text-gray-700">
-              Imaging shows right lower lobe opacity consistent with consolidation. Lab values (elevated WBC, CRP) and clinical presentation (fever, cough, dyspnea) support infectious process. Consider culture-guided therapy and reassessment in 48–72 hours.
+              Review clinical findings, imaging, and lab values to guide diagnosis and treatment recommendations.
             </p>
           </div>
 
@@ -79,20 +114,24 @@ export default function DiagnosticSupport() {
               Citations
             </h2>
             <ul className="space-y-2">
-              {MOCK_CITATIONS.map((c) => (
-                <li key={c.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{c.id}</p>
-                    <p className="text-xs text-gray-500">{c.source} — {c.title}</p>
-                  </div>
-                  <button
-                    type="button"
-                    className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-                  >
-                    View
-                  </button>
-                </li>
-              ))}
+              {citations.length === 0 ? (
+                <li className="text-gray-500">No citations available.</li>
+              ) : (
+                citations.map((c) => (
+                  <li key={c.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{c.id}</p>
+                      <p className="text-xs text-gray-500">{c.source} — {c.title}</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                    >
+                      View
+                    </button>
+                  </li>
+                ))
+              )}
             </ul>
           </div>
         </div>

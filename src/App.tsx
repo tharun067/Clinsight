@@ -14,7 +14,11 @@ import ClinicalNotes from './screens/ClinicalNotes'
 import DiagnosticSupport from './screens/DiagnosticSupport'
 import AuditLog from './screens/AuditLog'
 import Profile from './screens/Profile'
+import PatientPortal from './screens/PatientPortal'
 import AccessDenied from './screens/AccessDenied'
+import StaffRegistration from './screens/StaffRegistration'
+import StaffManagement from './screens/StaffManagement'
+import BootstrapAdmin from './screens/BootstrapAdmin'
 
 function PrivateRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
   const { user } = useAuth()
@@ -28,6 +32,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/bootstrap-admin" element={<BootstrapAdmin />} />
       <Route
         path="/"
         element={
@@ -38,6 +43,7 @@ export default function App() {
       >
         <Route index element={<HomeDashboard />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="portal" element={<PrivateRoute allowedRoles={['patient']}><PatientPortal /></PrivateRoute>} />
         <Route path="register" element={<PrivateRoute allowedRoles={['intake']}><PatientRegistration /></PrivateRoute>} />
         <Route path="upload" element={<PrivateRoute allowedRoles={['intake']}><BulkDocumentUpload /></PrivateRoute>} />
         <Route path="worklist" element={<PrivateRoute allowedRoles={['intake', 'nurse', 'radiologist', 'physician']}><PatientWorklist /></PrivateRoute>} />
@@ -47,6 +53,8 @@ export default function App() {
         <Route path="patient/:id/notes" element={<PrivateRoute allowedRoles={['intake', 'nurse', 'radiologist', 'physician', 'patient']}><ClinicalNotes /></PrivateRoute>} />
         <Route path="patient/:id/support" element={<PrivateRoute allowedRoles={['physician']}><DiagnosticSupport /></PrivateRoute>} />
         <Route path="audit" element={<PrivateRoute allowedRoles={['admin', 'compliance']}><AuditLog /></PrivateRoute>} />
+        <Route path="staff-register" element={<PrivateRoute allowedRoles={['admin']}><StaffRegistration /></PrivateRoute>} />
+        <Route path="staff-management" element={<PrivateRoute allowedRoles={['admin']}><StaffManagement /></PrivateRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
