@@ -38,9 +38,9 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-card shadow-card p-8">
+        <div className="bg-white rounded-card shadow-card p-8 border border-gray-100">
           <div className="flex items-center justify-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-xl bg-primary-500 text-white flex items-center justify-center">
               <Stethoscope className="w-7 h-7" />

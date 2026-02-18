@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import Login from './screens/Login'
+import Signup from './screens/Signup'
 import Layout from './components/Layout'
 import HomeDashboard from './screens/HomeDashboard'
 import PatientRegistration from './screens/PatientRegistration'
@@ -12,6 +13,7 @@ import LabsAndVitals from './screens/LabsAndVitals'
 import ClinicalNotes from './screens/ClinicalNotes'
 import DiagnosticSupport from './screens/DiagnosticSupport'
 import AuditLog from './screens/AuditLog'
+import Profile from './screens/Profile'
 import AccessDenied from './screens/AccessDenied'
 
 function PrivateRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
@@ -25,6 +27,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
       <Route
         path="/"
         element={
@@ -34,6 +37,7 @@ export default function App() {
         }
       >
         <Route index element={<HomeDashboard />} />
+        <Route path="profile" element={<Profile />} />
         <Route path="register" element={<PrivateRoute allowedRoles={['intake']}><PatientRegistration /></PrivateRoute>} />
         <Route path="upload" element={<PrivateRoute allowedRoles={['intake']}><BulkDocumentUpload /></PrivateRoute>} />
         <Route path="worklist" element={<PrivateRoute allowedRoles={['intake', 'nurse', 'radiologist', 'physician']}><PatientWorklist /></PrivateRoute>} />
