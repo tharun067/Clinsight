@@ -36,7 +36,7 @@ interface AuthResponse {
 }
 
 interface Patient {
-  id?: string
+  id: string
   uuid?: string
   full_name: string
   mrn: string

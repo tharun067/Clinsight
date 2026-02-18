@@ -30,7 +30,7 @@ export default function PatientWorklist() {
       !search.trim() ||
       p.full_name.toLowerCase().includes(search.toLowerCase()) ||
       p.mrn.toLowerCase().includes(search.toLowerCase()) ||
-      p.id.toLowerCase().includes(search.toLowerCase())
+      (p.id?.toLowerCase() || '').includes(search.toLowerCase())
     const matchStatus = !statusFilter || p.status === statusFilter
     return matchSearch && matchStatus
   })
