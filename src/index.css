@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  @apply bg-gray-50 text-gray-900 antialiased;
+}
+
+/* Focus ring per design system */
+*:focus-visible {
+  @apply outline-2 outline-offset-0 outline-primary-500;
+}
