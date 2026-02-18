@@ -28,7 +28,7 @@ export default function PatientOverview() {
     fetchPatient()
   }, [id])
 
-  if (user!.role === 'patient' && id !== user!.id) {
+  if (user?.role === 'patient' && id !== user?.id) {
     return <AccessDenied />
   }
 
@@ -42,8 +42,8 @@ export default function PatientOverview() {
     return (
       <div className="text-center py-12 text-gray-500">
         Patient not found.{' '}
-        <Link to={user!.role === 'patient' ? '/' : '/worklist'} className="text-primary-600 hover:underline">
-          {user!.role === 'patient' ? 'Back to dashboard' : 'Back to worklist'}
+        <Link to={user?.role === 'patient' ? '/' : '/worklist'} className="text-primary-600 hover:underline">
+          {user?.role === 'patient' ? 'Back to dashboard' : 'Back to worklist'}
         </Link>
       </div>
     )
@@ -53,7 +53,7 @@ export default function PatientOverview() {
     { to: `/patient/${id}/labs`, label: 'Labs & Vitals', icon: FlaskConical },
     { to: `/patient/${id}/imaging`, label: 'Imaging', icon: Image },
     { to: `/patient/${id}/notes`, label: 'Clinical Notes', icon: FileText },
-    ...(user!.role === 'physician'
+    ...(user?.role === 'physician'
       ? [{ to: `/patient/${id}/support`, label: 'Diagnostic Support', icon: Stethoscope as React.ElementType }]
       : []),
   ]

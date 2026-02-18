@@ -13,11 +13,11 @@ const SHORTCUTS: { path: string; label: string; description: string; icon: React
 
 export default function HomeDashboard() {
   const { user } = useAuth()
-  const firstName = user!.name.split(' ')[0]
-  const visibleShortcuts = SHORTCUTS.filter((s) => s.roles.includes(user!.role))
+  const firstName = user?.name?.split(' ')[0] || 'User'
+  const visibleShortcuts = SHORTCUTS.filter((s) => user && s.roles.includes(user.role))
   const patientShortcut =
-    user!.role === 'patient'
-      ? [{ path: `/patient/${user!.id}`, label: 'My record', description: 'View your patient record', icon: ClipboardList }]
+    user?.role === 'patient'
+      ? [{ path: `/patient/${user.id}`, label: 'My record', description: 'View your patient record', icon: ClipboardList }]
       : []
 
   return (
@@ -45,14 +45,14 @@ export default function HomeDashboard() {
         ))}
       </div>
 
-      {user!.role === 'intake' && (
+      {user?.role === 'intake' && (
         <div className="mt-8 bg-gradient-to-br from-white to-primary-50/30 rounded-card shadow-card p-6 border border-primary-100">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent registrations</h2>
           <p className="text-sm text-gray-600">No recent activity.</p>
         </div>
       )}
 
-      {user!.role === 'physician' && (
+      {user?.role === 'physician' && (
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white rounded-card shadow-card p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-2">

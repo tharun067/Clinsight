@@ -30,10 +30,10 @@ const SIDEBAR_ITEMS: { path: string; label: string; icon: React.ElementType; rol
 export default function Layout() {
   const { user, logout, sessionExpiresIn } = useAuth()
   const navigate = useNavigate()
-  const baseItems = SIDEBAR_ITEMS.filter((item) => item.roles.includes(user!.role))
+  const baseItems = SIDEBAR_ITEMS.filter((item) => user && item.roles.includes(user.role))
   const patientRecordItem =
-    user!.role === 'patient'
-      ? [{ path: `/patient/${user!.id}`, label: 'My record', icon: ClipboardList }]
+    user?.role === 'patient'
+      ? [{ path: `/patient/${user.id}`, label: 'My record', icon: ClipboardList }]
       : []
   const visibleItems = [...baseItems.slice(0, 1), ...patientRecordItem, ...baseItems.slice(1)]
 
@@ -77,11 +77,11 @@ export default function Layout() {
             }
           >
             <div className="w-10 h-10 rounded-full bg-primary-500 text-white flex items-center justify-center text-sm font-semibold shrink-0">
-              {user!.name.split(' ').map((n) => n[0]).join('')}
+              {user?.name?.split(' ').map((n) => n[0]).join('') || 'U'}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-900 truncate">{user!.name}</p>
-              <p className="text-xs text-gray-500 capitalize">{user!.role}</p>
+              <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
+              <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
             </div>
           </NavLink>
           <button
@@ -118,7 +118,7 @@ export default function Layout() {
             {sessionExpiresIn != null && (
               <span className="text-xs text-gray-500">Session expires in {sessionExpiresIn} min</span>
             )}
-            <span className="text-sm font-medium text-gray-700">{user!.name}</span>
+            <span className="text-sm font-medium text-gray-700">{user?.name}</span>
           </div>
         </header>
         <div className="flex-1 overflow-y-auto p-8">

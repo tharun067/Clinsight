@@ -23,12 +23,13 @@ export default function DiagnosticSupport() {
         setPatient(patientResult.data)
       }
 
-      const suggestionsResult = await apiService.getDiagnosticSupport(id)
-      if (suggestionsResult.data) {
-        setSuggestions(suggestionsResult.data.suggestions || [])
-        setCitations(suggestionsResult.data.citations || [])
-      } else if (suggestionsResult.error) {
-        setError(suggestionsResult.error)
+      const reportsResult = await apiService.getDiagnosticReports(id)
+      if (reportsResult.data && reportsResult.data.length > 0) {
+        const latestReport = reportsResult.data[0]
+        setSuggestions(latestReport?.suggestions || [])
+        setCitations(latestReport?.citations || [])
+      } else if (reportsResult.error) {
+        setError(reportsResult.error)
       }
 
       setLoading(false)

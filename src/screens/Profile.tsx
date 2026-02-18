@@ -125,7 +125,7 @@ export default function Profile() {
               <div className="space-y-6">
                 <div className="flex items-center gap-4 pb-6 border-b border-gray-200">
                   <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 text-white flex items-center justify-center text-2xl font-bold shadow-lg">
-                    {user.name.split(' ').map((n) => n[0]).join('')}
+                    {user.name?.split(' ').map((n) => n[0]).join('') || 'U'}
                   </div>
                   <div>
                     <h2 className="text-xl font-semibold text-gray-900">{user.name}</h2>

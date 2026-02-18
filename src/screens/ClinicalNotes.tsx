@@ -14,7 +14,7 @@ export default function ClinicalNotes() {
   const [adding, setAdding] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const canEdit = user!.role === 'physician' || user!.role === 'nurse'
+  const canEdit = user?.role === 'physician' || user?.role === 'nurse'
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,7 +33,7 @@ export default function ClinicalNotes() {
         // Ensure data is always an array
         const notesData = Array.isArray(notesResult.data) ? notesResult.data : []
         setNotes(notesData)
-        if (notesData.length > 0) {
+        if (notesData.length > 0 && notesData[0]?.id) {
           setSelectedId(notesData[0].id)
         }
       } else if (notesResult.error) {
@@ -46,7 +46,7 @@ export default function ClinicalNotes() {
     fetchData()
   }, [id])
 
-  if (user!.role === 'patient' && id !== user!.id) return <AccessDenied />
+  if (user?.role === 'patient' && id !== user?.id) return <AccessDenied />
   if (loading) {
     return <div className="text-center py-12 text-gray-500">Loading clinical notes...</div>
   }
@@ -54,7 +54,7 @@ export default function ClinicalNotes() {
     return <div className="text-center py-12 text-gray-500">Patient not found.</div>
   }
 
-  const selected = notes.find((n) => n.id === selectedId) ?? notes[0]
+  const selected = notes.find((n) => n.id === selectedId) ?? (notes.length > 0 ? notes[0] : null)
 
   return (
     <div>

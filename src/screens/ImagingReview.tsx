@@ -15,7 +15,7 @@ export default function ImagingReview() {
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const canEdit = user!.role === 'radiologist'
+  const canEdit = user?.role === 'radiologist'
 
   useEffect(() => {
     const fetchData = async () => {
@@ -34,9 +34,9 @@ export default function ImagingReview() {
         // Ensure data is always an array
         const studiesData = Array.isArray(studiesResult.data) ? studiesResult.data : []
         setStudies(studiesData)
-        if (studiesData.length > 0) {
+        if (studiesData.length > 0 && studiesData[0]) {
           setSelectedStudy(studiesData[0])
-          setNotes(studiesData[0].notes || '')
+          setNotes(studiesData[0]?.notes || '')
         }
       } else if (studiesResult.error) {
         setError(studiesResult.error)
@@ -48,7 +48,7 @@ export default function ImagingReview() {
     fetchData()
   }, [id])
 
-  if (user!.role === 'patient' && id !== user!.id) return <AccessDenied />
+  if (user?.role === 'patient' && id !== user?.id) return <AccessDenied />
   if (loading) {
     return <div className="text-center py-12 text-gray-500">Loading imaging studies...</div>
   }

@@ -14,7 +14,7 @@ export default function LabsAndVitals() {
   const [newObs, setNewObs] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const canEdit = user!.role === 'nurse'
+  const canEdit = user?.role === 'nurse'
 
   useEffect(() => {
     const fetchData = async () => {
@@ -28,16 +28,23 @@ export default function LabsAndVitals() {
         setPatient(patientResult.data)
       }
 
-      const labsResult = await apiService.getLabsAndVitals(id)
+      const [vitalsResult, labsResult] = await Promise.all([
+        apiService.getVitalsForPatient(id),
+        apiService.getLabResultsForPatient(id)
+      ])
+      
+      if (vitalsResult.data) {
+        const vitalsData = Array.isArray(vitalsResult.data) ? vitalsResult.data : []
+        setVitals(vitalsData)
+      }
+      
       if (labsResult.data) {
-        // Ensure data is always an array
-        const allResults = Array.isArray(labsResult.data) ? labsResult.data : []
-        const vitalsData = allResults.filter((r: any) => r.type === 'vitals')
-        const labsData = allResults.filter((r: any) => r.type === 'lab')
-        setVitals(vitalsData.length > 0 ? vitalsData : [])
-        setLabs(labsData.length > 0 ? labsData : [])
-      } else if (labsResult.error) {
-        setError(labsResult.error)
+        const labsData = Array.isArray(labsResult.data) ? labsResult.data : []
+        setLabs(labsData)
+      }
+      
+      if (vitalsResult.error || labsResult.error) {
+        setError(vitalsResult.error || labsResult.error || null)
       }
 
       setLoading(false)
@@ -46,7 +53,7 @@ export default function LabsAndVitals() {
     fetchData()
   }, [id])
 
-  if (user!.role === 'patient' && id !== user!.id) return <AccessDenied />
+  if (user?.role === 'patient' && id !== user?.id) return <AccessDenied />
   if (loading) {
     return <div className="text-center py-12 text-gray-500">Loading labs and vitals...</div>
   }
