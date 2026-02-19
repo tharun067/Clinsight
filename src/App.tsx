@@ -19,6 +19,7 @@ import AccessDenied from './screens/AccessDenied'
 import StaffRegistration from './screens/StaffRegistration'
 import StaffManagement from './screens/StaffManagement'
 import BootstrapAdmin from './screens/BootstrapAdmin'
+import GettingStarted from './screens/GettingStarted'
 
 function PrivateRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
   const { user } = useAuth()
@@ -42,6 +43,7 @@ export default function App() {
         }
       >
         <Route index element={<HomeDashboard />} />
+        <Route path="help" element={<GettingStarted />} />
         <Route path="profile" element={<Profile />} />
         <Route path="portal" element={<PrivateRoute allowedRoles={['patient']}><PatientPortal /></PrivateRoute>} />
         <Route path="register" element={<PrivateRoute allowedRoles={['intake']}><PatientRegistration /></PrivateRoute>} />

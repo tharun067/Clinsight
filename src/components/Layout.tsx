@@ -12,6 +12,7 @@ import {
   ClipboardList,
   BrainCircuit,
   Heart,
+  HelpCircle,
 } from 'lucide-react'
 import type { Role } from '../context/AuthContext'
 
@@ -24,6 +25,7 @@ const SIDEBAR_ITEMS: { path: string; label: string; icon: React.ElementType; rol
   { path: '/worklist', label: 'Patient Worklist', icon: Users, roles: ['intake', 'nurse', 'radiologist', 'physician'] },
   { path: '/diagnostic-lookup', label: 'Diagnostic Support', icon: BrainCircuit, roles: ['physician'] },
   { path: '/audit', label: 'Audit & Activity Log', icon: ShieldCheck, roles: ['admin', 'compliance'] },
+  { path: '/help', label: 'Getting Started', icon: HelpCircle, roles: ['intake', 'nurse', 'radiologist', 'physician', 'admin', 'compliance', 'patient'] },
   { path: '/profile', label: 'Profile', icon: User, roles: ['intake', 'nurse', 'radiologist', 'physician', 'admin', 'compliance', 'patient'] },
 ]
 
